@@ -49,7 +49,7 @@ instance Monad List where
     (a -> List b)
     -> List a
     -> List b
-  (=<<) = \f -> flatMap f
+  (=<<) = flatMap
 
 -- | Binds a function on an Optional.
 --
