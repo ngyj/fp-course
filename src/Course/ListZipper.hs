@@ -1,3 +1,4 @@
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -23,9 +24,10 @@ import qualified Prelude as P
 -- >>> instance Arbitrary a => Arbitrary (List a) where arbitrary = P.fmap (P.foldr (:.) Nil :: ([a] -> List a)) arbitrary
 -- >>> instance Arbitrary a => Arbitrary (ListZipper a) where arbitrary = do l <- arbitrary; x <- arbitrary; r <- arbitrary; P.return (ListZipper l x r)
 
--- A `ListZipper` is a focussed position, with a list of values to the left and to the right.
+-- | A `ListZipper` is a focused position, with a list of values to the left and to the right.
 --
--- For example, taking the list [0,1,2,3,4,5,6], the moving focus to the third position, the zipper looks like:
+-- For example, taking the list [0,1,2,3,4,5,6], the moving focus to the third position,
+-- the zipper looks like:
 -- ListZipper [2,1,0] 3 [4,5,6]
 --
 -- Supposing then we move left on this zipper:
@@ -64,16 +66,19 @@ data MaybeListZipper a =
 -- >>> (+1) <$> (zipper [3,2,1] 4 [5,6,7])
 -- [4,3,2] >5< [6,7,8]
 instance Functor ListZipper where
-  (<$>) =
-    error "todo: Course.ListZipper (<$>)#instance ListZipper"
+  (<$>) = \f (ListZipper ls m rs) ->
+    ListZipper (f <$> ls) (f m) (f <$> rs)
 
 -- | Implement the `Functor` instance for `MaybeListZipper`.
 --
 -- >>> (+1) <$> (IsZ (zipper [3,2,1] 4 [5,6,7]))
 -- [4,3,2] >5< [6,7,8]
 instance Functor MaybeListZipper where
-  (<$>) =
-    error "todo: Course.ListZipper (<$>)#instance MaybeListZipper"
+  (<$>) = \f m ->
+    case m of
+      IsNotZ -> IsNotZ
+      IsZ zs -> IsZ $ f <$> zs
+
 
 -- | Convert the given zipper back to a list.
 --
@@ -88,8 +93,7 @@ instance Functor MaybeListZipper where
 toList ::
   ListZipper a
   -> List a
-toList =
-  error "todo: Course.ListZipper#toList"
+toList = \(ListZipper ls m rs) -> reverse (m:.ls) ++ rs
 
 -- | Convert the given (maybe) zipper back to a list.
 toListZ ::
@@ -112,8 +116,11 @@ toListZ (IsZ z) =
 fromList ::
   List a
   -> MaybeListZipper a
-fromList =
-  error "todo: Course.ListZipper#fromList"
+fromList = \ls ->
+  case ls of
+    Nil -> IsNotZ
+    (x:.xs) -> IsZ (ListZipper Nil x xs)
+
 
 -- | Retrieve the `ListZipper` from the `MaybeListZipper` if there is one.
 --
@@ -123,8 +130,9 @@ fromList =
 toOptional ::
   MaybeListZipper a
   -> Optional (ListZipper a)
-toOptional =
-  error "todo: Course.ListZipper#toOptional"
+toOptional = \case IsNotZ -> Empty
+                   IsZ x  -> Full x
+
 
 zipper ::
   [a]
@@ -183,8 +191,7 @@ withFocus ::
   (a -> a)
   -> ListZipper a
   -> ListZipper a
-withFocus =
-  error "todo: Course.ListZipper#withFocus"
+withFocus = \f (ListZipper ls x rs) = ListZipper ls (f x) rs
 
 -- | Set the focus of the zipper to the given value.
 -- /Tip:/ Use `withFocus`.
@@ -198,8 +205,8 @@ setFocus ::
   a
   -> ListZipper a
   -> ListZipper a
-setFocus =
-  error "todo: Course.ListZipper#setFocus"
+setFocus = \p -> go
+
 
 -- A flipped infix alias for `setFocus`. This allows:
 --
